@@ -1,6 +1,7 @@
 import { Bot, GrammyError, HttpError, InlineKeyboard } from "grammy";
 import 'dotenv/config'
 import { mixes } from "./mixData.js";
+import { findMixByIng, getIngredients } from "./functions.js";
 
 const bot = new Bot(process.env.BOT_TOKEN); 
 const commands = [
@@ -14,6 +15,7 @@ const commands = [
     // }
 ]
 bot.api.setMyCommands(commands);
+
 
 // start menu
 const menuKeyboard = new InlineKeyboard()
@@ -65,6 +67,7 @@ bot.command('mix').filter(async (ctx) => {
         const msgId = ctx.msgId
         await ctx.answerCallbackQuery()
         await ctx.api.editMessageText(chatId, msgId, 'Подобрать микс', {
+        parse_mode: HTML,    
         reply_markup: menuKeyboard
         })
     }
@@ -154,8 +157,11 @@ bot.callbackQuery('taste', async (ctx) => {
 bot.callbackQuery('ingredient', async (ctx) => {
     const chatId = ctx.chatId
     const msgId = ctx.msgId
+    await ctx.reply('Для продолжения воспользуйтесь полем ввода и введите интересующий вас ингредиент'
+    )
     await ctx.answerCallbackQuery()
 })
+
 
 bot.callbackQuery('backToMenu', async (ctx) => {
     const chatId = ctx.chatId
@@ -166,11 +172,32 @@ bot.callbackQuery('backToMenu', async (ctx) => {
     })
 })
 
-bot.callbackQuery('ingredient').on('message:text', async (ctx) => {
-    const text = ctx.msg.text;
-    console.log('text: ', text);
-    
+bot.on('message:text', async (ctx) => {
+    console.log(ctx);
+    const requiredIng = ctx.message.text.toLowerCase().trim()
+    await ctx.api.sendMessage(ctx.chatId, 'Обработка запроса...')
+    let result = findMixByIng(mixes, requiredIng)
+    result = getIngredients(result)
+    if (Boolean(result.length)) {
+        // await ctx.api.deleteMessage(ctx.update.message.message_id)
+        if (result.length > 1) {
+            await ctx.reply(`Попробуйте следующие миксы:\n${result}`, {
+                reply_markup: menuKeyboard
+            })
+        } else {
+            await ctx.reply(`Попробуйте следующий микс:\n${result}`, {
+                reply_markup: menuKeyboard
+            })
+        }
+        
+    } else {
+        // await ctx.api.deleteMessage(ctx.msgId+1)
+        await ctx.reply('Вы могли бы получить список охуенно вкусных миксочков, но дядька Зил пока занят, поэтому можешь пока забить вишню с колой и завилить еблет', {
+            reply_markup: menuKeyboard
+        })
+    }
 })
+
 
 // bot.on('message').filter(
 //     async (ctx) => {
@@ -227,11 +254,6 @@ bot.on('callback_query:data', async (ctx) => {
    
 })
 
-// bot.on("message:text", async (ctx) => {
-//     const text = ctx.msg.text;
-//     console.log('text: ', text);
-    
-//   });
 
 bot.catch((err) => {
 	const ctx = err.ctx;
