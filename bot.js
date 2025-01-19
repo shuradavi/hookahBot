@@ -1,4 +1,4 @@
-import { Bot, GrammyError, HttpError, InlineKeyboard } from "grammy";
+import { Bot, GrammyError, HttpError, InlineKeyboard, InputFile } from "grammy";
 import 'dotenv/config'
 import { mixes } from "./mixData.js";
 import { findMixByIng, getIngredients } from "./functions.js";
@@ -16,6 +16,9 @@ const commands = [
 ]
 bot.api.setMyCommands(commands);
 
+// let form = new FormData();
+// form.append('menuLogo', fs.createReadStream('./img/menu.jpg'))
+
 
 // start menu
 const menuKeyboard = new InlineKeyboard()
@@ -28,6 +31,7 @@ const goToMixKeyboard = new InlineKeyboard().text('Перейти к микса�
 
 
 bot.command('start', async (ctx) => {
+    console.log(ctx.from, 'вызваная команда: ', ctx.update.message.text);
     const id = ctx.from.id;
     const chatId = ctx.msg.chat.id
     const msgId = ctx.msgId
@@ -35,25 +39,28 @@ bot.command('start', async (ctx) => {
         let pass = await bot.api.getChatMember('@hookah_test01', id);        
         if (pass.status == 'member' || pass.status == 'administrator' || pass.status == 'creator') {
             console.log(`Пользователь с id: ${id} подписан на канал`);
-            await ctx.reply(`Привет, я - бот тг-канала: <a href="https://t.me/hookah_test01">hookah_test01_channel</a>`, {
-                parse_mode: 'HTML',
-                reply_markup: goToMixKeyboard
-        })
+            await bot.api.sendPhoto(ctx.chatId, new InputFile('./img/menu.jpg'), {
+                reply_markup: goToMixKeyboard,
+                caption: 'Привет, я - бот тг-канала: <a href="https://t.me/hookah_test01">hookah_test01_channel</a>',
+                parse_mode: 'HTML'
+            })
         } else {
             console.log(`Пользователь с id: ${id} не подписан на канал, выпоняем блок ELSE`);
-            await ctx.reply(`Привет, я - бот тг-канала: <a href="https://t.me/hookah_test01">hookah_test01_channel</a> для продолжения необходимо подписаться на канал`, {
-                parse_mode: 'HTML',
+            await bot.api.sendPhoto(ctx.chatId, new InputFile('./img/menu.jpg'), {
                 reply_markup: new InlineKeyboard()
                     .url('Канал о кальянах', 'https://t.me/hookah_test01').row()
-                    .text('Проверить подписку', 'start')
-        })
+                    .text('Проверить подписку', 'start'),
+                caption: 'Привет, я - бот тг-канала: <a href="https://t.me/hookah_test01">hookah_test01_channel</a> для продолжения необходимо подписаться на канал',
+                parse_mode: 'HTML'
+            })
         }
     } catch (error) {
-        await ctx.reply(`Привет, я - бот тг-канала: <a href="https://t.me/hookah_test01">hookah_test01_channel</a> для продолжения необходимо подписаться на канал`, {
-            parse_mode: 'HTML',
+        await bot.api.sendPhoto(ctx.chatId, new InputFile('./img/menu.jpg'), {
             reply_markup: new InlineKeyboard()
                 .url('Канал о кальянах', 'https://t.me/hookah_test01').row()
-                .text('Проверить подписку', 'start')
+                .text('Проверить подписку', 'start'),
+            caption: 'Привет, я - бот тг-канала: <a href="https://t.me/hookah_test01">hookah_test01_channel</a> для продолжения необходимо подписаться на канал',
+            parse_mode: 'HTML'
         })
     }
 })
@@ -66,12 +73,25 @@ bot.command('mix').filter(async (ctx) => {
         const chatId = ctx.chatId
         const msgId = ctx.msgId
         await ctx.answerCallbackQuery()
-        await ctx.api.editMessageText(chatId, msgId, 'Подобрать микс', {
-        parse_mode: HTML,    
-        reply_markup: menuKeyboard
+        // await ctx.api.editMessageText(chatId, msgId, 'Подобрать микс', {
+        // parse_mode: HTML,    
+        // reply_markup: menuKeyboard
+        // })
+    await bot.api.sendPhoto(ctx.chatId, new InputFile('./img/menu.jpg'), {
+        reply_markup: menuKeyboard,
+        caption: 'Подобрать микс'
         })
     }
 )
+
+bot.command('try', async (ctx) => {
+    // await bot.api.sendPhoto(ctx.chatId, new InputFile('./img/menu.jpg'))
+    await bot.api.sendPhoto(ctx.chatId, new InputFile('./img/menu.jpg'), {
+        reply_markup: goToMixKeyboard,
+        caption: 'Привет, я - бот тг-канала: <a href="https://t.me/hookah_test01">hookah_test01_channel</a> для продолжения необходимо подписаться на канал',
+        parse_mode: 'HTML'
+    })
+})
 
 bot.callbackQuery('start', async (ctx) => {
         const id = ctx.from.id;
@@ -81,17 +101,29 @@ bot.callbackQuery('start', async (ctx) => {
         let pass = await bot.api.getChatMember('@hookah_test01', id);        
         if (pass.status == 'member' || pass.status == 'administrator' || pass.status == 'creator') {
             console.log(`Теперь пользователь с id: ${id} подписался на канал!`);
-            await ctx.api.editMessageText(chatId, msgId, 'Отлично, спасибо за подписку, теперь ты можешь продолжить', {
-                reply_markup: goToMixKeyboard
+            await bot.api.sendPhoto(ctx.chatId, new InputFile('./img/bar.jpg'), {
+                reply_markup: goToMixKeyboard,
+                caption: 'Отлично, спасибо за подписку, теперь ты можешь продолжить',
             })
+            // await ctx.api.editMessageText(chatId, msgId, 'Отлично, спасибо за подписку, теперь ты можешь продолжить', {
+            //     reply_markup: goToMixKeyboard
+            // })
             await ctx.answerCallbackQuery()
         } else {
             console.log('Настырный пользователь не подписывается');
-            await ctx.api.editMessageText(chatId, msgId, 'Вы не подписались на канал. Для продолжения необходимо подписаться', {
+            await bot.api.deleteMessage(chatId, msgId)
+            await bot.api.sendPhoto(ctx.chatId, new InputFile('./img/menu.jpg'), {
                 reply_markup: new InlineKeyboard()
                     .url('Канал о кальянах', 'https://t.me/hookah_test01').row()
-                    .text('Проверить подписку', 'start')
+                    .text('Проверить подписку', 'start'),
+                caption: 'Привет, я - бот тг-канала: <a href="https://t.me/hookah_test01">hookah_test01_channel</a> для продолжения необходимо подписаться на канал',
+                parse_mode: 'HTML'
             })
+            // await ctx.api.editMessageText(chatId, msgId, 'Вы не подписались на канал. Для продолжения необходимо подписаться', {
+            //     reply_markup: new InlineKeyboard()
+            //         .url('Канал о кальянах', 'https://t.me/hookah_test01').row()
+            //         .text('Проверить подписку', 'start')
+            // })
             await ctx.answerCallbackQuery()
         }
         } catch (error) {
@@ -109,8 +141,13 @@ bot.callbackQuery('mix').filter(async (ctx) => {
         const chatId = ctx.chatId
         const msgId = ctx.msgId
         await ctx.answerCallbackQuery()
-        await ctx.api.editMessageText(chatId, msgId, 'Подобрать микс', {
-        reply_markup: menuKeyboard
+        // await ctx.api.editMessageText(chatId, msgId, 'Подобрать микс', {
+        // reply_markup: menuKeyboard
+    // })
+        await bot.api.deleteMessage(ctx.chatId, ctx.msgId)
+        await bot.api.sendPhoto(ctx.chatId, new InputFile('./img/bar.jpg'), {
+            reply_markup: menuKeyboard,
+            caption: 'Подобрать микс',
         })
     }
 )
@@ -118,8 +155,8 @@ bot.callbackQuery('mix').filter(async (ctx) => {
 bot.callbackQuery('category', async (ctx) => {
     const chatId = ctx.chatId
     const msgId = ctx.msgId
-    await ctx.answerCallbackQuery()
-    await ctx.api.editMessageText(chatId, msgId, 'Выберите основу микса', {
+    await bot.api.deleteMessage(chatId, msgId)
+    await bot.api.sendPhoto(chatId, new InputFile('./img/bar.jpg'), {
         reply_markup: new InlineKeyboard()
             .text('Фруктовый', 'fruit').row()
             .text('Ягодный', 'berries').row()
@@ -134,15 +171,16 @@ bot.callbackQuery('category', async (ctx) => {
             .text('Тропический', 'tropical').row()
             .text('Свежий', 'fresh').row()
             .text('Гаструха', 'gastro').row()
-            .text('Назад в меню', 'backToMenu')
+            .text('Назад в меню', 'backToMenu'),
+        caption: 'Выберите основу микса'
     })
+    await ctx.answerCallbackQuery()
 })
 
 bot.callbackQuery('taste', async (ctx) => {
     const chatId = ctx.chatId
     const msgId = ctx.msgId
-    await ctx.answerCallbackQuery()
-    await ctx.api.editMessageText(chatId, msgId, 'Выберите вкус микса', {
+    await bot.api.sendPhoto(chatId, new InputFile('./img/bar.jpg'), {
         reply_markup: new InlineKeyboard()
             .text('Сладкий', 'sweet').row()
             .text('Кислый', 'sour').row()
@@ -150,13 +188,13 @@ bot.callbackQuery('taste', async (ctx) => {
             .text('Горький', 'bitter').row()
             .text('Солёный', 'salty').row()
             .text('Острый', 'spicy').row()
-            .text('Назад в меню', 'backToMenu')
+            .text('Назад в меню', 'backToMenu'),
+        caption: 'Выберите основу микса'
     })
+    await ctx.answerCallbackQuery()
 })
 
 bot.callbackQuery('ingredient', async (ctx) => {
-    const chatId = ctx.chatId
-    const msgId = ctx.msgId
     await ctx.reply('Для продолжения воспользуйтесь полем ввода и введите интересующий вас ингредиент'
     )
     await ctx.answerCallbackQuery()
@@ -166,35 +204,67 @@ bot.callbackQuery('ingredient', async (ctx) => {
 bot.callbackQuery('backToMenu', async (ctx) => {
     const chatId = ctx.chatId
     const msgId = ctx.msgId
-    await ctx.answerCallbackQuery()
-    await ctx.api.editMessageText(chatId, msgId, 'Подобрать микс', {
-        reply_markup: menuKeyboard
+    await ctx.api.deleteMessage(chatId, msgId)
+    // await ctx.api.editMessageText(chatId, msgId, 'Подобрать микс', {
+    //     reply_markup: menuKeyboard
+    // })
+    await bot.api.sendPhoto(ctx.chatId, new InputFile('./img/bar.jpg'), {
+        reply_markup: menuKeyboard,
+        caption: 'Подобрать микс',
     })
+    await ctx.answerCallbackQuery()
 })
 
 bot.on('message:text', async (ctx) => {
-    console.log(ctx);
+    const chatId = ctx.chatId
+    const msgId = ctx.msgId
     const requiredIng = ctx.message.text.toLowerCase().trim()
     await ctx.api.sendMessage(ctx.chatId, 'Обработка запроса...')
     let result = findMixByIng(mixes, requiredIng)
     result = getIngredients(result)
     if (Boolean(result.length)) {
-        // await ctx.api.deleteMessage(ctx.update.message.message_id)
         if (result.length > 1) {
-            await ctx.reply(`Попробуйте следующие миксы:\n${result}`, {
-                reply_markup: menuKeyboard
-            })
+            setTimeout(async () => {
+                await bot.api.deleteMessage(chatId, msgId+1)
+                await bot.api.sendPhoto(chatId, new InputFile('./img/hookahTime.jpg'), {
+                reply_markup: menuKeyboard,
+                caption: `Попробуйте следующие миксы:\n${result}`
+                })
+            }, 1000)
+            
+            // await ctx.reply(`Попробуйте следующие миксы:\n${result}`, {
+            //     reply_markup: menuKeyboard
+            // })
         } else {
-            await ctx.reply(`Попробуйте следующий микс:\n${result}`, {
-                reply_markup: menuKeyboard
-            })
+            // await ctx.reply(`Попробуйте следующий микс:\n${result}`, {
+            //     reply_markup: menuKeyboard
+            // })
+            setTimeout(async () => {
+                await bot.api.deleteMessage(chatId, msgId+1)
+                await bot.api.sendPhoto(chatId, new InputFile('./img/hookahTime.jpg'), {
+                reply_markup: menuKeyboard,
+                caption: `Попробуйте следующие миксы:\n${result}`
+                })
+            }, 1000)
+            // await bot.api.deleteMessage(chatId, msgId+1)
+            // await bot.api.sendPhoto(chatId, new InputFile('./img/hookahTime.jpg'), {
+            //     reply_markup: menuKeyboard,
+            //     caption: `Попробуйте следующие миксы:\n${result}`
+            // })
         }
         
     } else {
         // await ctx.api.deleteMessage(ctx.msgId+1)
-        await ctx.reply('Вы могли бы получить список охуенно вкусных миксочков, но дядька Зил пока занят, поэтому можешь пока забить вишню с колой и завилить еблет', {
-            reply_markup: menuKeyboard
-        })
+        // await ctx.reply('Вы могли бы получить список охуенно вкусных миксочков, но дядька Зил пока занят, поэтому можешь пока забить вишню с колой и завилить еблет', {
+        //     reply_markup: menuKeyboard
+        // })
+        setTimeout(async () => {
+            await bot.api.deleteMessage(chatId, msgId+1)
+            await bot.api.sendPhoto(chatId, new InputFile('./img/work.jpg'), {
+                reply_markup: new InlineKeyboard().text('Назад в меню', 'backToMenu'),
+                caption: `Вы могли бы получить список охуенно вкусных миксочков, но дядька Зил пока занят, поэтому можешь пока забить вишню с колой и завилить еблет`
+                })
+        }, 1000)
     }
 })
 
@@ -213,6 +283,7 @@ bot.on('message:text', async (ctx) => {
   
 bot.on('callback_query:data', async (ctx) => {
     const data = ctx.update.callback_query.data
+    const chatId = ctx.chatId
     if (Boolean(data.length) && Boolean(Object.keys(mixes).length)) {
         let relevantMixes = []
         for (let name in mixes) {   
@@ -240,13 +311,21 @@ bot.on('callback_query:data', async (ctx) => {
             resp = `${resp}\n${i + 1}. ${result[i]}`
         }  
         if (Boolean(resp)) {
-            await ctx.api.sendMessage(ctx.chatId, resp, {
-                reply_markup: new InlineKeyboard().text('Назад в меню', 'backToMenu')
-            })
+            // await ctx.api.sendMessage(ctx.chatId, resp, {
+            //     reply_markup: new InlineKeyboard().text('Назад в меню', 'backToMenu')
+            // })
+            await bot.api.sendPhoto(chatId, new InputFile('./img/hookahTime.jpg'), {
+                reply_markup: new InlineKeyboard().text('Назад в меню', 'backToMenu'),
+                caption: `Попробуйте следующие миксы:\n${resp}`
+                })
         } else {
-            await ctx.api.sendMessage(ctx.chatId, 'Вы могли бы получить список охуенно вкусных миксочков, но дядька Зил пока занят, поэтому можешь пока забить вишню с колой и завилить еблет', {
-                reply_markup: menuKeyboard
-            })
+            // await ctx.api.sendMessage(ctx.chatId, 'Вы могли бы получить список охуенно вкусных миксочков, но дядька Зил пока занят, поэтому можешь пока забить вишню с колой и завилить еблет', {
+            //     reply_markup: menuKeyboard
+            // })
+            await bot.api.sendPhoto(chatId, new InputFile('./img/work.jpg'), {
+                reply_markup: new InlineKeyboard().text('Назад в меню', 'backToMenu'),
+                caption: `Вы могли бы получить список охуенно вкусных миксочков, но дядька Зил пока занят, поэтому можешь пока забить вишню с колой и завилить еблет`
+                })
         }
         await ctx.answerCallbackQuery();
     }
@@ -257,7 +336,8 @@ bot.on('callback_query:data', async (ctx) => {
 
 bot.catch((err) => {
 	const ctx = err.ctx;
-	console.error(`Error while handling update ${ctx.update.update_id}:`);
+    console.error(`Error while handling update ${ctx.update.update_id}:`);
+    console.error(ctx.from, 'вызваная команда: ', ctx.update.message.text);
 	const e = err.error;
 
 	if (e instanceof GrammyError) {
